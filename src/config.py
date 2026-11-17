@@ -58,3 +58,16 @@ VALID_END = "2012-06-30"
 # have no complete history and are dropped; tests/test_contract.py uses this
 # to bound how many rows may legitimately disappear.
 LAG_WARMUP = 7
+
+# 5. Source columns: raw inputs a feature is built from, never fed in directly.
+#    holiday -> is_holiday, workday -> is_workday, weather -> weather_severity.
+SOURCE_COLS = {"holiday", "workday", "weather"}
+
+# 6. Unused: month and day of week are recomputed from dteday (month_sin/cos,
+#    dayofweek); season is a coarser restatement of month.
+UNUSED_COLS = {"mnth", "weekday", "season"}
+
+# 7. Direct: raw columns that pass into the model unchanged. Written out by
+#    hand on purpose: a new numeric column would otherwise become a feature
+#    automatically and classify itself.
+DIRECT_COLS = {"temp", "atemp", "hum", "windspeed"}

@@ -56,3 +56,14 @@ def test_persistence_baseline_is_reported():
     """The baseline that matters for a lag-driven model is 'yesterday again'.
     It must be in the comparison, whatever its score."""
     assert "baseline_persistence" in MODELS
+
+
+def test_every_raw_column_is_classified(raw, feats):
+    """Every column in data/raw/bike_daily.csv must be a feature, dteday, or in a
+    named set in src/config.py. A new column in the data fails here instead of
+    entering (or being dropped) silently."""
+    from src.config import DIRECT_COLS, FORBIDDEN, SOURCE_COLS, UNUSED_COLS
+
+    known = FORBIDDEN | SOURCE_COLS | UNUSED_COLS | DIRECT_COLS | {"dteday"}
+    unclassified = set(raw.columns) - known
+    assert not unclassified, f"unclassified raw columns: {sorted(unclassified)}"
