@@ -43,7 +43,12 @@ TIME_INDEX_COLS = {"instant", "yr", "days_since_2011"}
 UNVERIFIED_COLS = {"cnt_2d_bfr"}
 
 # What feature_columns() and the tests actually enforce.
-FORBIDDEN = LEAKAGE_COLS | TIME_INDEX_COLS | UNVERIFIED_COLS
+# 4. Rejected: built and tested, but hurt validation. cnt_roll_3 moved
+#    ridge valid R2 0.6475 -> 0.6439 and hgb 0.2185 -> 0.1983. Still built
+#    by features.py (its test stays), never given to a model.
+REJECTED_COLS = {"cnt_roll_3"}
+
+FORBIDDEN = LEAKAGE_COLS | TIME_INDEX_COLS | UNVERIFIED_COLS | REJECTED_COLS
 
 # Temporal split: train on 2011, validate on H1 2012, test on H2 2012.
 TRAIN_END = "2011-12-31"
