@@ -15,7 +15,6 @@ from src.ingest import load_raw
 
 WEATHER_ORDER = {"GOOD": 0, "MISTY": 1, "BAD": 2}
 
-
 def encode_weather(series: pd.Series) -> pd.Series:
     """Ordinal-encode weather, failing loudly on unseen labels.
 
