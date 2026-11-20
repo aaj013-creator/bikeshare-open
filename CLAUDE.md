@@ -39,3 +39,8 @@ rides) from calendar, weather, and lagged-demand features.
   cannot extrapolate to 2012. That is the headline result, not an error.
 - 2012-10-29 (Hurricane Sandy, 22 rides) is in the test set. Expect it in
   any residual plot.
+
+## Fault Seeding & Raw Data Integrity
+- Seeded fault outputs and fixes are recorded in `docs/SEEDED_FAULTS.md`[cite: 2].
+- Use the `seed-fault` skill (`.claude/skills/seed-fault/SKILL.md`) for repeatable fault checks[cite: 1].
+- `tests/test_raw_hash.py` verifies `data/raw/bike_daily.csv` SHA-256 integrity and raw directory files inside the repo[cite: 2].
