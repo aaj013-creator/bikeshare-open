@@ -101,3 +101,10 @@ tests/test_leakage.py:57: AssertionError
 =========================================================== short test summary info ===========================================================
 FAILED tests/test_leakage.py::test_rolling_mean_excludes_today - assert np.float64(4389.0) == 4414.857142857143 ± 0.00441486
 1 failed, 7 passed, 1 warning in 0.71s
+
+## Fault 3: Removed `raise` from `encode_weather`
+
+Command: `python3 -c 'import pandas as pd; from src.features import encode_weather; s = pd.Series(["GOOD", "SNOW"]); print(encode_weather(s).tolist())'`
+
+```text
+[0.0, nan]
