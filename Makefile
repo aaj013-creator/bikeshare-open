@@ -5,6 +5,7 @@ all: data features train
 
 data:
 	python -m src.ingest
+	python -m pytest tests/test_raw_hash.py -q
 
 features:
 	python -m src.features

@@ -77,3 +77,11 @@ def test_no_missing_values(feats):
 def test_dates_are_sorted_and_unique(feats):
     assert feats.dteday.is_monotonic_increasing
     assert feats.dteday.is_unique
+
+def test_encode_weather_rejects_unknown_label():
+    """Removing the raise in encode_weather must fail tests on unseen labels."""
+    from src.features import encode_weather
+
+    s = pd.Series(["GOOD", "SNOW"])
+    with pytest.raises(ValueError, match="unmapped weather labels"):
+        encode_weather(s)
