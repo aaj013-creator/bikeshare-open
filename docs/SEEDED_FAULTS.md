@@ -108,3 +108,6 @@ Command: `python3 -c 'import pandas as pd; from src.features import encode_weath
 
 ```text
 [0.0, nan]
+## Fault 4 (`cp` into `data/raw`) and SHA-256 hash check
+
+Copying a file into `data/raw/` or modifying `data/raw/bike_daily.csv` tampers with raw inputs. What catches a `cp` into `data/raw` is a `PreToolUse` hook on `Bash` blocking writes/copies into `data/raw`, read-only permissions (`chmod -w data/raw`), or the in-repo hash check in `tests/test_raw_hash.py` (which verifies file names and SHA-256 checksums inside the repo without relying on `/tmp`)[cite: 2].
