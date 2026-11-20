@@ -41,6 +41,6 @@ rides) from calendar, weather, and lagged-demand features.
   any residual plot.
 
 ## Fault Seeding & Raw Data Integrity
-- Seeded fault outputs and fixes are recorded in `docs/SEEDED_FAULTS.md`[cite: 2].
-- Use the `seed-fault` skill (`.claude/skills/seed-fault/SKILL.md`) for repeatable fault checks[cite: 1].
-- `tests/test_raw_hash.py` verifies `data/raw/bike_daily.csv` SHA-256 integrity and raw directory files inside the repo[cite: 2].
+- Seeded fault outputs and fixes are recorded in `docs/SEEDED_FAULTS.md`.
+- Use the `seed-fault` skill (`.claude/skills/seed-fault/SKILL.md`) for repeatable fault checks.
+- `tests/test_raw_hash.py` verifies `data/raw/bike_daily.csv` SHA-256 integrity and raw directory files inside the repo.
