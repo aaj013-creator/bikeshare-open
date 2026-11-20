@@ -1,11 +1,12 @@
 ---
 name: seed-fault
-description: Seed and verify controlled faults, run repository checks including the raw data hash check, record real outputs in docs/SEEDED_FAULTS.md, and restore clean state.
+description: Break, record, restore. Seed the one fault named in the argument into src/, show the tests catch it, append the real output to docs/SEEDED_FAULTS.md, then restore the file.
+argument-hint: <fault, e.g. "remove .shift(1) from cnt_roll_7">
+allowed-tools: Bash(python -m pytest:*), Bash(git diff:*), Bash(git status), Bash(git checkout:*)
 ---
+Seed this fault: $ARGUMENTS
 
-# Seed Fault Workflow
-
-1. Confirm a clean working tree and verify `python3 -m pytest tests/test_raw_hash.py -q`.
-2. Apply one controlled fault at a time (`casual` in `feature_columns`, removing `.shift(1)` on `cnt_roll_7`, removing `raise` in `encode_weather`, or testing a `cp` into `data/raw` guard).
-3. Run `python3 -m pytest tests/ -q` and record real output and fix details in `docs/SEEDED_FAULTS.md`.
-4. Restore all tracked files and remove any stray files in `data/raw/`, then re-run `python3 -m pytest tests/ -q`.
+1. Run `git status`. Stop if src/ or tests/ has uncommitted changes.
+2. Break: make the smallest edit in src/ that introduces the fault. Never touch tests/ or data/raw/bike_daily.csv.
+3. Record: run `git diff` and `python -m pytest tests/test_leakage.py -q`. Append a section to docs/SEEDED_FAULTS.md with the fault description, the diff, the pytest output pasted verbatim, and any hook stderr. Paste real output, not a description of it.
+4. Restore: undo only the edit from step 2 with `git checkout -- <the file you edited>`, then confirm `python -m pytest tests/ -q` passes. Never restore docs/.

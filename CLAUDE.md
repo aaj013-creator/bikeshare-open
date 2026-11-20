@@ -40,7 +40,6 @@ rides) from calendar, weather, and lagged-demand features.
 - 2012-10-29 (Hurricane Sandy, 22 rides) is in the test set. Expect it in
   any residual plot.
 
-## Fault Seeding & Raw Data Integrity
-- Seeded fault outputs and fixes are recorded in `docs/SEEDED_FAULTS.md`[cite: 2].
-- Use the `seed-fault` skill (`.claude/skills/seed-fault/SKILL.md`) for repeatable fault checks[cite: 1].
-- `tests/test_raw_hash.py` verifies `data/raw/bike_daily.csv` SHA-256 integrity and raw directory files inside the repo[cite: 2].
+## Raw data and fault seeding
+- `data/raw/` is read-only input. Never write there, including `cp`, `mv` or `>` in Bash. `tests/test_raw_hash.py` checks the sha256 and the directory contents, and `make data` runs it.
+- To seed a fault, run `/seed-fault <description>`. It edits only `src/`, records real output in docs/SEEDED_FAULTS.md, and restores the file.
