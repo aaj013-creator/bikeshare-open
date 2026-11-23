@@ -49,7 +49,7 @@ Agent-generated work:
 
 - Codex wrote `src/target_experiment.py`, ran the validation and frozen test comparison, and generated the two target-experiment JSON files.
 - Codex drafted this report, including the deployment recommendation and methodological interpretation, and appended the corresponding decision records.
-- Codex attempted `agent/audit.py`; the required local model was unavailable. No successful SDK audit or peer-auditor output is claimed.
+- Codex manually reviewed the `person-c-analysis` diff; no issue in the five required checks was found that changes a number or invalidates a conclusion. The configured audit model was unavailable, and a different team member still needs to run `/leakage-auditor` on this branch before merge. See `docs/AUDIT.md`.
 - Existing features, tests, fault documentation and configuration came from A/B and the starter, as recorded in the earlier history.
 
 Human-specified choices and inherited group decisions:
@@ -58,4 +58,4 @@ Human-specified choices and inherited group decisions:
 - The existing group record specifies the prediction target, exclusions, chronological split and both baselines (the five starter decision lines).
 - Person A's recorded decision rejected `cnt_roll_3` using validation evidence (2026-11-16).
 
-The target-transformation choice, defensibility argument and deployment recommendation above were proposed by Codex, not independently supplied by the user. The group must review these claims before submission. Exercise 3 remains incomplete until a peer repository is provided and the configured audit model can run; see `docs/AUDIT.md`.
+The target-transformation choice, defensibility argument and deployment recommendation above were proposed by Codex, not independently supplied by the user. The group must review these claims before submission. Person C's Exercise 3 remains incomplete until a different team member runs `/leakage-auditor` on the `person-c-analysis` branch before it is merged and records their review in `docs/AUDIT.md`.
