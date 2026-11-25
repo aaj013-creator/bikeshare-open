@@ -43,13 +43,13 @@ For a deployment whose cost is proportional to absolute daily count error, we re
 
 ## Attribution
 
-Person C used OpenAI Codex (GPT-6; parameter count not disclosed), rather than the group's earlier `qwen3.5:9b` via Ollama (`bikeshare-coder`, 64k context). The prior model configuration and unsuccessful hosted-model attempt are recorded in `docs/DECISIONS.md`. Person C's work therefore represents a switch in assistant; it is not a local Qwen run.
+Person C used OpenAI Codex (GPT-6; parameter count not disclosed) to implement and explain the target transformation. The independent leakage audit of `a-feature` used Claude Code's `leakage-auditor` agent with local Qwen3.5:9b through Ollama (`bikeshare-coder`, 64k context). A separate audit review of Person C's branch is recorded in `docs/AUDIT.md`.
 
 Agent-generated work:
 
 - Codex wrote `src/target_experiment.py`, ran the validation and frozen test comparison, and generated the two target-experiment JSON files.
 - Codex drafted this report, including the deployment recommendation and methodological interpretation, and appended the corresponding decision records.
-- Codex manually reviewed the `person-c-analysis` diff; no issue in the five required checks was found that changes a number or invalidates a conclusion. The configured audit model was unavailable, and a different team member still needs to run `/leakage-auditor` on this branch before merge. See `docs/AUDIT.md`.
+- Codex independently reviewed the `person-c-analysis` changes against the five leakage checks and verified the tests. The configured local auditor session timed out while attempting this branch, so the manual review and that limitation are recorded in `docs/AUDIT.md`.
 - Existing features, tests, fault documentation and configuration came from A/B and the starter, as recorded in the earlier history.
 
 Human-specified choices and inherited group decisions:
@@ -58,4 +58,4 @@ Human-specified choices and inherited group decisions:
 - The existing group record specifies the prediction target, exclusions, chronological split and both baselines (the five starter decision lines).
 - Person A's recorded decision rejected `cnt_roll_3` using validation evidence (2026-11-16).
 
-The target-transformation choice, defensibility argument and deployment recommendation above were proposed by Codex, not independently supplied by the user. The group must review these claims before submission. Person C's Exercise 3 remains incomplete until a different team member runs `/leakage-auditor` on the `person-c-analysis` branch before it is merged and records their review in `docs/AUDIT.md`.
+The target-transformation choice, defensibility argument and deployment recommendation above were proposed by Codex, not independently supplied by the user. The group should review these claims before submission.

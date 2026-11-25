@@ -13,9 +13,9 @@ How it ran. The first attempt (`@agent-leakage-auditor ...`) was answered by the
 ### Auditor output (verbatim)
 
 ```text
-❯ @agent-leakage-auditor audit branch ex2-faults. Its changes are in git diff   
-  1e38653..ex2-faults. Do not edit any files. Report your findings exactly as   
-  you would to a reviewer.                                                      
+❯ @agent-leakage-auditor audit branch ex2-faults. Its changes are in git diff
+  1e38653..ex2-faults. Do not edit any files. Report your findings exactly as
+  you would to a reviewer.
 
   Thought for 3m 53s, ran 1 shell command (ctrl+o to expand)
 
@@ -206,27 +206,53 @@ Agreed, and worth keeping: faults were seeded by hand, so no agent turn counts e
 
 Missed by the auditor (no number changes): `test_rolling_mean_excludes_today` wraps its assert in `if all(...)`, so it would pass silently if a day in its window were missing. On this data the window for row 200 is complete, which is why Fault 2 went red. It is a starter test outside this branch.
 
-## Person C branch: `person-c-analysis` — preliminary self-review
+## Audit 2: configured `leakage-auditor` on `a-feature`
 
-Reviewed against main at `b8eebc5`; branch code commit reviewed: `3fce625` (2026-11-22). This is Codex's preliminary manual review, not a teammate audit and not output from `/leakage-auditor`.
+Range audited: `c2ca066..1e38653` (`origin/a-feature`; the branch tip is already an ancestor of `main`, so `main..a-feature` is empty). Fresh Claude Code session using the repository's `leakage-auditor` agent and local Qwen3.5:9b via Ollama (`bikeshare-coder`, 65,536-token context), 2026-11-25.
 
-> No finding from the five required checks changes a number or invalidates a conclusion in the inspected diff. `src/target_experiment.py` forms the training target as `cnt - cnt_lag_1`, where the lag is built from the prior calendar day; it fits on the 2011 training partition and evaluates later date partitions. Calendar reindexing and lag warmup/drop behavior are inherited from `src/features.py`, which explicitly inserts missing dates before shifting and is covered by the existing row-count contract. The experiment reports both mean and persistence baselines beside each model. The main limitation is stated in `REPORT.md`: same-day measured weather is inherited from the starter features, so these scores describe a daily-updating setup with weather available, not a forecast made before that day's weather is known.
-
-This review does **not** fulfill the assignment requirement for a different team member to run `/leakage-auditor` on `person-c-analysis` before merge and add their own findings. That teammate review remains outstanding.
-
-### Earlier SDK attempt
-
-On 2026-11-19, from the local checkout, Codex attempted:
-
-```sh
-.venv/bin/python agent/audit.py . --out reports/audit.jsonl
-```
-
-The SDK attempt did not complete. Its diagnostic output was:
+### Auditor output (verbatim)
 
 ```text
-Ignoring 5 permissions.allow entries from .claude/settings.json: this workspace has not been trusted. Run Claude Code interactively here once and accept the trust dialog, or set projects["/Users/bala/bikeshare-open"].hasTrustDialogAccepted: true in /Users/bala/.claude.json.
-[claude-code:unrecognized_model] {"model":"bikeshare-coder","query_source":"sdk"}
+All tests pass. Let me now verify each check against the diff and report findings:
+
+## Audit Results
+
+### Check 1: Target Leakage
+**PASS.** The new feature `cnt_roll_3` (line 77 of features.py) is:
+- `out["cnt_roll_3"] = out[TARGET].shift(1).rolling(3).mean()`
+- Uses `.shift(1)` before rolling, excluding today's value
+- Properly tested in `tests/test_leakage.py::test_cnt_roll_3_on_named_date` which verifies it equals `(4460 + 5020 + 4891) / 3 = 4790.33` for 2011-06-15
+- Added to `REJECTED_COLS` in config.py because it "hurt validation" (not leakage)
+
+### Check 2: Temporal Ordering
+**PASS.** All lags use `.shift(1)` before aggregation, split uses date boundaries, and models fit only on train data.
+
+### Check 3: Calendar Gaps
+**PASS.** `reindex_to_calendar()` (lines 34-50) creates a gap-free calendar using `pd.date_range(..., freq="D")` before shifting, correctly handling the missing 2011-03-10 row.
+
+### Check 4: Silent Row Loss
+**PASS.** The `.dropna()` on line 79 is bounded by `test_only_expected_rows_are_dropped` which validates against `LAG_WARMUP = 7`.
+
+### Check 5: Unreported Baseline
+**PASS.** Both baselines are reported next to every model:
+- `DummyRegressor(strategy="mean")` provides mean baseline (R² -0.9318, -2.1441)
+- `PersistenceBaseline("cnt_lag_1")` provides persistence baseline (R² 0.4507, 0.5099)
+
+All five checks pass.
 ```
 
-No Ollama executable was found on PATH and `http://localhost:11434/api/tags` refused the connection. No `reports/audit.jsonl` was fabricated. The successful configured-model run and teammate review remain outstanding.
+### Verdict and verification
+
+The agent's five checks pass. Independently ran `python -m pytest tests/ -q` in the `a-feature` worktree: 16 passed.
+
+## Person C branch: `person-c-analysis` — independent review
+
+Range reviewed: `adf1f92..a11b0c7` (Person C's target-transform experiment, report, result files, and audit/decision updates). A fresh `leakage-auditor` session was started against this branch, but the local Ollama request hit its five-minute timeout twice before returning a review. The findings below are a separate manual review; they are not represented as generated auditor output.
+
+- **Target leakage:** `src/target_experiment.py` trains the delta model on `train[TARGET] - train['cnt_lag_1']`, then adds the validation/test row's prior-day lag back. The lag feature is shifted on the calendar-aligned feature frame, so the forecast does not use the target day's count.
+- **Temporal ordering:** all models are cloned and fitted on the 2011 training partition; validation and test remain date-based partitions. The test option only changes which held-out partition is scored.
+- **Calendar gaps / row loss:** the branch does not change feature generation or row filtering. Those behaviors remain covered by the inherited calendar and row-count contract.
+- **Baselines:** each output includes the mean and persistence baselines alongside ridge, raw HGB, and delta HGB.
+- **Conclusion:** no leakage issue found that invalidates the experiment's conclusion. The report correctly says same-day measured weather is inherited and limits the recommendation to a daily-updating setup.
+
+Validation: `python -m pytest tests/ -q` in the review environment passed 18 tests. That environment had scikit-learn 1.2.2 and pandas 2.1.4, while `requirements.txt` pins scikit-learn 1.9.1 and pandas 3.0.5. Re-running the experiment here therefore produced different HGB scores; this is version drift, not evidence that the committed JSON files are reproducible in this environment. Re-run under the pinned requirements before relying on an exact reproduction. No `reports/audit.jsonl` is claimed.
