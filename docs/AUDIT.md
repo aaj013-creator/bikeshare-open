@@ -2,7 +2,7 @@
 
 Each member audits another member's branch in a fresh Claude Code session that did not produce it. One section per audit.
 
-## Audit 1: Person A audits branch `ex2-faults` (Person B, Exercise 2)
+## Audit 1: Aarushi Jain audits branch `ex2-faults` (Sana Gupta, Exercise 2)
 
 Range audited: `git diff 1e38653..ex2-faults` (9 files: seed-fault skill, .gitignore, CLAUDE.md, Makefile, DECISIONS.md, SEEDED_FAULTS.md, src/features.py, tests/test_leakage.py, tests/test_raw_hash.py).
 
@@ -192,7 +192,7 @@ How it ran. The first attempt (`@agent-leakage-auditor ...`) was answered by the
 
 ✻ Brewed for 8m 43s · done 8:01 PM```
 
-### Verdict (Person A)
+### Verdict (Aarushi Jain)
 
 No finding changes a number, and I agree with the overall verdict: the three faults are the required ones, each has a fault commit and a fix commit, and the branch leaves no functional change in `src/`. What I ran to check: `git diff 1e38653..ex2-faults -- src/features.py` shows one deleted blank line and nothing else; `git diff --stat 1e38653..ex2-faults` lists no file under `data/raw/`, and `shasum -a 256 data/raw/bike_daily.csv` still begins `a6bed1577f6e4de5`; `make test` on main after the merge gives 18 passed.
 
@@ -245,9 +245,9 @@ All five checks pass.
 
 The agent's five checks pass. Independently ran `python -m pytest tests/ -q` in the `a-feature` worktree: 16 passed.
 
-## Person C branch: `person-c-analysis` — independent review
+## Akshitaa Balasai branch: `person-c-analysis` — independent review
 
-Range reviewed: `adf1f92..a11b0c7` (Person C's target-transform experiment, report, result files, and audit/decision updates). A fresh `leakage-auditor` session was started against this branch, but the local Ollama request hit its five-minute timeout twice before returning a review. The findings below are a separate manual review; they are not represented as generated auditor output.
+Range reviewed: `adf1f92..a11b0c7` (Akshitaa Balasai's target-transform experiment, report, result files, and audit/decision updates). A fresh `leakage-auditor` session was started against this branch, but the local Ollama request hit its five-minute timeout twice before returning a review. The findings below are a separate manual review; they are not represented as generated auditor output.
 
 - **Target leakage:** `src/target_experiment.py` trains the delta model on `train[TARGET] - train['cnt_lag_1']`, then adds the validation/test row's prior-day lag back. The lag feature is shifted on the calendar-aligned feature frame, so the forecast does not use the target day's count.
 - **Temporal ordering:** all models are cloned and fitted on the 2011 training partition; validation and test remain date-based partitions. The test option only changes which held-out partition is scored.

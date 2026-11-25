@@ -1,5 +1,7 @@
 # Bikeshare demand report
 
+Group: Aarushi Jain (A), Sana Gupta (B), Akshitaa Balasai (C).
+
 ## Results
 
 All rows come from `make all`. "Final" is the committed pipeline (`reports/metrics.json`, with `cnt_roll_3` excluded). "With cnt_roll_3" is the same pipeline with the feature included (`reports/metrics.json` at commit `b965f53`). R² is unitless; MAE is rides/day. The decision to reject `cnt_roll_3` used validation only; its test rows are reported for completeness and were not used to decide.
@@ -45,19 +47,19 @@ For a deployment whose cost is proportional to absolute daily count error, we re
 
 ## Attribution
 
-Person C used OpenAI Codex (GPT-6; parameter count not disclosed) to implement and explain the target transformation. The independent leakage audit of `a-feature` used Claude Code's `leakage-auditor` agent with local Qwen3.5:9b through Ollama (`bikeshare-coder`, 64k context). A separate audit review of Person C's branch is recorded in `docs/AUDIT.md`.
+Models: Aarushi Jain used qwen3.5:9b via local Ollama (`bikeshare-coder`, 64k context) throughout; a hosted model (glm-5.3-flash:cloud) was tried and returned 402, so it was not used. Sana Gupta seeded the Exercise 2 faults by hand in a terminal, so no agent turns were recorded. Akshitaa Balasai switched to OpenAI Codex (GPT-6, size undisclosed) for Exercises 4 and 5; Akshitaa Balasai's audit of `a-feature` used qwen3.5:9b. Aarushi Jain also used Claude (Anthropic) as a chat assistant outside the repo, to plan steps and draft commands, tests and text that A then ran, checked and edited.
 
-Agent-generated work:
+Agent-generated (files or functions):
+- qwen3.5:9b: the `cnt_roll_3` line in `src/features.py`; a first draft of the `cnt_roll_3` test (rejected and rewritten, DECISIONS 2026-11-16); both `leakage-auditor` outputs in `docs/AUDIT.md`; `reports/audit.jsonl`.
+- Claude chat assistant: first drafts of `test_cnt_roll_3_on_named_date`, `test_every_raw_column_is_classified`, the `REJECTED_COLS`, `SOURCE_COLS`, `UNUSED_COLS` and `DIRECT_COLS` sets in `src/config.py`, Aarushi Jain's DECISIONS.md lines, the Audit 1 verdict, and the Results and Headline text.
+- Codex: `src/target_experiment.py`, `reports/target_validation.json`, `reports/target_experiment.json`, first drafts of the Exercise 4 and 5 sections, and the review of `person-c-analysis` in `docs/AUDIT.md`.
 
-- Codex wrote `src/target_experiment.py`, ran the validation and frozen test comparison, and generated the two target-experiment JSON files.
-- Codex drafted this report, including the deployment recommendation and methodological interpretation, and appended the corresponding decision records.
-- Codex independently reviewed the `person-c-analysis` changes against the five leakage checks and verified the tests. The configured local auditor session timed out while attempting this branch, so the manual review and that limitation are recorded in `docs/AUDIT.md`.
-- Existing features, tests, fault documentation and configuration came from A/B and the starter, as recorded in the earlier history.
-
-Human-specified choices and inherited group decisions:
-
-- The user assigned Person C Exercises 3–5 and attribution, supplied the group repository, and requested compliance with the assignment.
-- The existing group record specifies the prediction target, exclusions, chronological split and both baselines (the five starter decision lines).
-- Person A's recorded decision rejected `cnt_roll_3` using validation evidence (2026-11-16).
-
-The target-transformation choice, defensibility argument and deployment recommendation above were proposed by Codex, not independently supplied by the user. The group should review these claims before submission.
+Decisions that were ours (each has a line in docs/DECISIONS.md):
+- Predict `cnt`; exclude `casual` and `registered` as leakage; split 2011 / H1 2012 / H2 2012 by date; report the mean and persistence baselines with every score (starter lines, kept).
+- Treat R² 1.000 as invalid, and the ridge margin over persistence (0.0734 R², worse MAE) as small (starter lines; Headline finding).
+- Reject `cnt_roll_3` because validation R² fell for ridge and HGB; test set not used (2026-11-16).
+- Require the feature test to assert unconditionally on a named date (2026-11-16).
+- Every raw column must be classified, with `DIRECT_COLS` written by hand (2026-11-17).
+- Add the unknown-weather-label test, and check every file in `data/raw/` from `make data` (2026-11-19).
+- Exercise 4: daily-change target, frozen after one validation candidate, defensible only when yesterday's count is known (2026-11-19). Proposed with Codex; reviewed and agreed by Akshitaa Balasai.
+- Exercise 5: prefer persistence over ridge when cost is absolute error (2026-11-19). Proposed with Codex; reviewed and agreed by Akshitaa Balasai.
