@@ -255,4 +255,6 @@ Range reviewed: `adf1f92..a11b0c7` (Person C's target-transform experiment, repo
 - **Baselines:** each output includes the mean and persistence baselines alongside ridge, raw HGB, and delta HGB.
 - **Conclusion:** no leakage issue found that invalidates the experiment's conclusion. The report correctly says same-day measured weather is inherited and limits the recommendation to a daily-updating setup.
 
-Validation: `python -m pytest tests/ -q` in the review environment passed 18 tests. That environment had scikit-learn 1.2.2 and pandas 2.1.4, while `requirements.txt` pins scikit-learn 1.9.1 and pandas 3.0.5. Re-running the experiment here therefore produced different HGB scores; this is version drift, not evidence that the committed JSON files are reproducible in this environment. Re-run under the pinned requirements before relying on an exact reproduction. No `reports/audit.jsonl` is claimed.
+Validation: `python -m pytest tests/ -q` in the review environment passed 18 tests. That environment had scikit-learn 1.2.2 and pandas 2.1.4, while `requirements.txt` pins scikit-learn 1.9.1 and pandas 3.0.5. Re-running the experiment here therefore produced different HGB scores; re-run under the pinned requirements before relying on exact reproduction.
+
+The `a-feature` row in `reports/audit.jsonl` is a structured summary of the completed interactive auditor output and independent checks. It is not the `agent/audit.py` batch SDK's output: the batch run did not return a structured result before it was stopped.
