@@ -2,20 +2,22 @@
 
 ## Results
 
-Final untransformed pipeline, with the rejected `cnt_roll_3` excluded. Values below match the existing `reports/metrics.json`; R² is unitless and MAE is rides/day.
+All rows come from `make all`. "Final" is the committed pipeline (`reports/metrics.json`, with `cnt_roll_3` excluded). "With cnt_roll_3" is the same pipeline with the feature included (`reports/metrics.json` at commit `b965f53`). R² is unitless; MAE is rides/day. The decision to reject `cnt_roll_3` used validation only; its test rows are reported for completeness and were not used to decide.
 
-| Model | Validation R² | Validation MAE | Test R² | Test MAE |
-|---|---:|---:|---:|---:|
-| Mean | -0.9318 | 2002.2 | -2.1441 | 2847.7 |
-| Persistence | 0.4507 | 900.6 | 0.5099 | 840.1 |
-| Ridge | 0.6475 | 832.9 | 0.5833 | 947.1 |
-| HGB | 0.2185 | 1296.6 | -0.4975 | 1972.6 |
-
-Person A's final integration remains: add the required before/after feature comparison and ensure its eight rows agree with the committed metrics evidence. This table describes the final retained pipeline only.
+| Model | Feature set | Validation R² | Validation MAE | Test R² | Test MAE |
+|---|---|---:|---:|---:|---:|
+| Mean | Final | -0.9318 | 2002.2 | -2.1441 | 2847.7 |
+| Persistence | Final | 0.4507 | 900.6 | 0.5099 | 840.1 |
+| Ridge | Final | 0.6475 | 832.9 | 0.5833 | 947.1 |
+| HGB | Final | 0.2185 | 1296.6 | -0.4975 | 1972.6 |
+| Mean | With cnt_roll_3 (rejected) | -0.9318 | 2002.2 | -2.1441 | 2847.7 |
+| Persistence | With cnt_roll_3 (rejected) | 0.4507 | 900.6 | 0.5099 | 840.1 |
+| Ridge | With cnt_roll_3 (rejected) | 0.6439 | 836.5 | 0.5800 | 946.2 |
+| HGB | With cnt_roll_3 (rejected) | 0.1983 | 1311.6 | -0.5338 | 1998.7 |
 
 ## Headline finding
 
-Under the chronological split, ridge reaches test R² 0.5833 against persistence's 0.5099, but has worse MAE (947.1 versus 840.1). HGB has negative test R² (-0.4975), yet improves on the training-mean baseline (-2.1441). These comparisons support a growth/extrapolation limitation rather than the claim that any negative R² model loses to every baseline. Person A rejected the three-day rolling feature after validation R² declined for ridge (0.6475 to 0.6439) and HGB (0.2185 to 0.1983); the original feature set is retained.
+A naive model that uses every column scores R² 1.000, and that score is invalid: `casual + registered == cnt` on every row, so the model learns addition rather than demand (`python -m src.leakage_demo`). With those columns excluded and a chronological split (train 2011, validate H1 2012, test H2 2012), the mean baseline scores test R² -2.1441, because ridership grew about 65% and the 2011 average no longer describes late 2012. Ridge reaches test R² 0.5833 against a persistence baseline of 0.5099, a margin of only 0.0734, and loses to persistence on MAE (947.1 versus 840.1 rides). Gradient boosting scores -0.4975: far better than the mean baseline, but negative because a tree cannot predict above the largest count it saw in training, and most test days lie above the 2011 maximum. Our added feature, `cnt_roll_3`, lowered validation R² for both ridge (0.6475 to 0.6439) and HGB (0.2185 to 0.1983), so we rejected it and kept the original feature set.
 
 ## Exercise 4: target transformation
 
