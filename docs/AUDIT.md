@@ -258,3 +258,204 @@ Range reviewed: `adf1f92..a11b0c7` (Akshitaa Balasai's target-transform experime
 Validation: `python -m pytest tests/ -q` in the review environment passed 18 tests. That environment had scikit-learn 1.2.2 and pandas 2.1.4, while `requirements.txt` pins scikit-learn 1.9.1 and pandas 3.0.5. Re-running the experiment here therefore produced different HGB scores; re-run under the pinned requirements before relying on exact reproduction.
 
 The `a-feature` row in `reports/audit.jsonl` is a structured summary of the completed interactive auditor output and independent checks. It is not the `agent/audit.py` batch SDK's output: the batch run did not return a structured result before it was stopped.
+
+## Audit 3: Sana Gupta audits `person-c-analysis`
+
+This audit was done after the branch had already been merged (merge commit `8566185` on `main`). Range audited: `git diff 8566185^1 8566185`, which is what Person C's branch added to `main` (6 files: `REPORT.md`, `docs/AUDIT.md`, `docs/DECISIONS.md`, `reports/target_experiment.json`, `reports/target_validation.json`, `src/target_experiment.py`). The agent was pointed only at the one code file, `src/target_experiment.py`; it did not review the report, the JSON files or the docs.
+
+Model: qwen3.5:9b via local Ollama (`bikeshare-coder`, 65,536-token context), fresh Claude Code session, 2026-11-25.
+
+### How it ran
+
+- First attempt: `@agent-leakage-auditor audit branch person-c-analysis ...` for the whole diff. The main session thought for 4m 10s and launched the subagent, then Claude Code stopped at a permission prompt (auto mode cannot run its safety check through `localhost:11434`). I denied one prompt by mistake and told the agent to retry. After 15m 8s the session showed 515 tokens and no review, so I interrupted it. No output from this run is used below.
+- Second attempt: restarted with `API_TIMEOUT_MS=1800000` and a narrower prompt (only `src/target_experiment.py`, five checks, one short paragraph each). The main session wrote its own summary after about 10 minutes, and the background subagent finished after 23m 51s (32m 12s for the whole session). The output below is this second run, unedited (exported with `/export`).
+- Both the main session's summary and the subagent's report are in the transcript. The subagent was reported as `general-purpose`, not as a separate `leakage-auditor` entry. The checks it ran are not the five used in Audit 2 (target leakage, temporal ordering, calendar gaps, silent row loss, unreported baseline), and the main session's "Check 5: Fault seeding awareness" is not a leakage check.
+
+### Auditor output (verbatim)
+
+```text
+▗ ▗   ▖ ▖  Claude Code v2.1.332
+           bikeshare-coder · API Usage Billing
+ ▘▘   ▝▝   ~/bikeshare-open
+
+▎ Using bikeshare-coder (from .claude/settings.json) · /model
+
+❯ @agent-leakage-auditor audit src/target_experiment.py only, from branch
+  person-c-analysis (git diff 8566185^1 8566185 -- src/target_experiment.py).
+  Go through your five checks one at a time, one short paragraph each. Do not
+  edit any files.
+
+  Thought for 2m 33s (ctrl+o to expand)
+
+⏺ Agent(Audit target_experiment.py diff)
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+⏺ Auto mode can't check actions in this session. Its safety check runs
+  on the server, and your requests go through localhost:11434, which
+  doesn't pass it through. Actions that need the check now ask for your
+  approval. To work without these prompts, switch permission mode with
+  Shift+Tab. To use auto mode, ask whoever runs localhost:11434 to pass
+  Claude Code's server-side safety check through: https://code.claude.co
+  m/docs/en/permission-modes#server-side-classifier-review
+
+  Thought for 2m 37s (ctrl+o to expand)
+
+⏺ I've launched the leakage auditor agent to review the diff. You'll be notified
+  when it completes. In the meantime, let me read the file directly to give you
+  immediate context:
+
+  Thought for 4m 19s, ran 1 shell command (ctrl+o to expand)
+
+⏺ Audit Summary: src/target_experiment.py
+
+  Check 1: Temporal split compliance — Uses temporal_split(df) from src.train,
+  which respects the train=2011, valid=H1 2012, test=H2 2012 rule. No random
+  splitting detected.
+
+  Check 2: Leakage via lag features — The code fits models on cnt_lag_1 in
+  training only, then predicts residual demand (today minus yesterday). This is
+  valid incremental prediction, not leakage. However, the test set includes
+  cnt_lag_1, which requires proper computation there too (not leaking future
+  values).
+
+  Check 3: Baseline reporting — Reports R² and MAE for all models including
+  "hgb_delta" (persistence baseline), but missing the mean baseline (long-term
+  average) alongside the persistence baseline as required.
+
+  Check 4: Forbidden columns — No explicit exclusion of casual or registered;
+  relies on feature_columns(). If those columns slip into features, it's a
+  problem in the feature engineering module, not here.
+
+  Check 5: Fault seeding awareness — Does not hardcode dates except through
+  load_raw()/temporal_split(). No Sandy (2012-10-29) special-casing or
+  assumptions baked in directly.
+
+  The agent will complete its detailed audit shortly.
+
+✻ Brewed for 10m 12s · done 7:22 PM
+
+› Message from general-purpose
+  Note: bikeshare-coder (the safety classifier) was unavailable (timed out) when
+  reviewing this subagent's work. Please carefully verify the subagent's
+  actions and output before acting on them.
+
+    Audit of src/target_experiment.py (git diff 8566185^1 8566185):
+
+    Check 1: No forbidden columns leak into features — PASS. The script uses
+  `feature_columns(df)` from `src/features.py`, which filters out all columns in
+  `FORBIDDEN`. That set includes `LEAKAGE_COLS = {"casual", "registered",
+  "cnt"}`, so the target itself and its components are excluded.
+
+    Check 2: Temporal split is correct — PASS. The experiment calls
+  `temporal_split(df)` from `src/train.py`, which implements the required split:
+  train = 2011, valid = H1 2012, test = H2 2012 (using `TRAIN_END="2011-12-31"`
+  and `VALID_END="2012-06-30"`). The `--test` flag correctly controls whether
+  the test set is included in validation.
+
+    Check 3: Lag features respect calendar indexing — PASS/Note. The residual
+  model fits on `train[TARGET] - train['cnt_lag_1']`. The `cnt_lag_1` comes from
+  `src/features.py`, which `.shift(1)` after `reindex_to_calendar()`,
+  respecting the calendar index and shifting by days rather than rows. A
+  dedicated leakage test exists in `tests/test_leakage.py` for this pattern, but
+  I did not inspect it.
+
+    Check 4: Baselines are reported alongside models — PASS. The experiment
+  outputs both baselines: `baseline_mean` and `baseline_persistence`. The
+  persistence baseline is correctly computed as yesterday's count via the
+  `cnt_lag_1` feature. This matches the non-negotiable rule to report both
+  baselines.
+
+    Check 5: No new dependencies; runnable module with one-line summary — PASS.
+  The file imports only standard library plus `pandas`, `sklearn` (already
+  pinned in requirements), and local modules. Running `python -m
+  src.target_experiment --out reports/experiment.json` prints a JSON-formatted
+  result. This deviates from the project's `OK ...` pattern used by pipeline
+  stages, but the script is an experiment/analysis tool rather than a stage that
+  must conform.
+
+    Summary: The file adheres to all five checks; no blocking issues found.
+
+  Thought for 4m 19s (ctrl+o to expand)
+
+⏺ The agent has completed its audit of src/target_experiment.py. Here are the
+  findings:
+
+  Audit Results: All Checks Pass ✓
+
+  Check 1: No forbidden columns leak into features — The script uses
+  feature_columns(df) from src/features.py, which filters out all FORBIDDEN
+  columns including casual, registered, and cnt. PASS.
+
+  Check 2: Temporal split is correct — Uses temporal_split(df) implementing the
+  required train=2011, valid=H1 2012, test=H2 2012 split. The --test flag
+  properly controls test set inclusion. PASS.
+
+  Check 3: Lag features respect calendar indexing — The residual model fits on
+  train[TARGET] - train['cnt_lag_1']. The cnt_lag_1 comes from src/features.py,
+  which shifts after reindexing to calendar, respecting the index and shifting
+  by days rather than rows. A leakage test exists in tests/test_leakage.py. PASS
+  with note.
+
+  Check 4: Baselines are reported alongside models — The experiment outputs both
+  baselines: baseline_mean and baseline_persistence. The persistence baseline
+  is computed via cnt_lag_1. MATCHES requirements. However, my initial read
+  flagged this as missing the mean baseline — need to verify this is actually
+  present in the output.
+
+  Check 5: No new dependencies; runnable module — Only standard library + pandas
+  + sklearn (already pinned) + local modules. Prints JSON-formatted results.
+  Deviates from the project's OK ... pattern but acceptable for an experiment
+  tool. PASS.
+
+  ---
+
+  One item to verify: Check 4 claimed both baselines are reported, but my
+  initial read of the diff showed only R² and MAE metrics being computed. The
+  subagent may have been reading a different version or there's a discrepancy.
+  Would you like me to double-check the actual output format produced by this
+  script?
+
+✻ Baked for 32m 12s · done 7:43 PM
+
+⏺ Agent "Audit target_experiment.py diff" finished · 23m 51s
+```
+
+### Which findings I agree with
+
+I checked each claim against the code rather than the transcript.
+
+- **Temporal split (agree).** `temporal_split` in `src/train.py` splits by date with `TRAIN_END = "2011-12-31"` and `VALID_END = "2012-06-30"` (`src/config.py` lines 54-55), so train is 2011, validation is H1 2012 and test is H2 2012. There is no random split. `src/target_experiment.py` calls `temporal_split` unchanged.
+- **Lag leakage (agree).** `cnt_lag_1` is `out[TARGET].shift(1)` (`src/features.py` line 73). `reindex_to_calendar` is called at line 53, before any shift, so the lag is by calendar day and the missing 2011-03-10 row cannot misalign it. Validation and test rows get their lag from the same `build_features` frame. The residual model is fitted on `train[TARGET] - train['cnt_lag_1']` and `cnt_lag_1` is added back at prediction time, which uses only the previous day's observed count.
+- **Forbidden columns (agree).** `FORBIDDEN` is the union of four sets (`src/config.py` line 51) and `LEAKAGE_COLS = {"casual", "registered", "cnt"}` (line 31), so the subagent's description is correct. `feature_columns` is the existing filter and the branch does not change it.
+- **Baselines (agree with the subagent, disagree with the main session).** `MODELS` in `src/train.py` contains `baseline_mean` and `baseline_persistence`, and `experiment()` builds its results from `MODELS`. The committed validation JSON has both. The main session's Check 3 ("missing the mean baseline") is wrong, and it also labels `hgb_delta` as the persistence baseline, but `hgb_delta` is the residual HGB model. The main session's closing paragraph contradicts the subagent on this point and asks whether to re-check; my checks below settle it.
+- **No new dependencies (agree).** The file imports only the standard library, scikit-learn and local modules.
+
+### What I disagree with or could not confirm
+
+- The subagent says that running `python -m src.target_experiment --out reports/experiment.json` prints JSON. The transcript shows only one shell command in the main session, so I do not treat this as a run the agent performed. I ran the module myself (below).
+- The subagent's Check 3 says it did not inspect the leakage test in `tests/test_leakage.py`.
+- Silent row loss and calendar gaps were not checked by the agent for this branch. By reading the code, `src/target_experiment.py` does not drop rows itself and does not change feature generation.
+- The agent did not review `REPORT.md`, `reports/target_experiment.json` (the test numbers) or the docs.
+
+### What I ran to check
+
+All from a clean checkout of `main` in the pinned `.venv` (scikit-learn 1.9.1, pandas 3.0.5):
+
+```text
+grep -n "FORBIDDEN" src/config.py
+grep -n "LEAKAGE_COLS\|TRAIN_END\|VALID_END\|REJECTED_COLS" src/config.py
+grep -n "def temporal_split" -A 12 src/train.py
+grep -n "MODELS\|baseline" src/train.py
+grep -n "cnt_lag_1\|shift(1)" src/features.py
+grep -n "reindex_to_calendar" src/features.py
+python -m pytest tests/ -q                    # 18 passed
+python -m src.target_experiment --out /tmp/valid_check.json
+diff of /tmp/valid_check.json vs origin/person-c-analysis:reports/target_validation.json  # no differences
+git status --short                            # clean (nothing written to the repo)
+```
+
+The validation output reproduced exactly: raw HGB R² 0.2185 / MAE 1296.6, residual HGB 0.6079 / 834.3, ridge 0.6475 / 832.9, persistence 0.4507 / 900.6, mean -0.9318 / 2002.2. I wrote the output to `/tmp` so no reports were overwritten, and I did not re-run `--test`.
+
+### Verdict and comparison with Person C's manual review
+
+I found no leakage in `src/target_experiment.py`. This agrees with the manual review Person C added under Audit 2. That review could not confirm the committed numbers because it ran on scikit-learn 1.2.2 and pandas 2.1.4; under the pinned requirements the validation JSON reproduces exactly. Limits of this audit: the auditor was a 9B local model whose summary contained one false finding (the missing mean baseline), only one file was in scope, and the test-split numbers in `reports/target_experiment.json` were not re-run.
